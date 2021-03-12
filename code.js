@@ -49,10 +49,13 @@ const nodeProps = [
     "clipsContent",
     "guides",
 ];
-/////////////////////////////////////////////////
-/////////////////////////////////////////////////
-/////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////
 const selection = figma.currentPage.selection;
+/////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////
 const createClone = (source) => {
     let clone = figma.createFrame();
     clone.resize(source.width, source.height);
@@ -60,41 +63,53 @@ const createClone = (source) => {
     nodeProps.forEach((item) => {
         clone[item] = source[item];
     });
-    // Object.assign(newClone, frame);
-    // newClone.name = frame.name;
-    // newClone.x = frame.x;
-    // newClone.y = frame.y;
     return clone;
 };
+/////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////
 const replaceAndKillInstance = (instance) => {
-    // Create clone frame
-    let cloneFrame = createClone(instance);
-    // Get layer index and append it
     let layerIndex = instance.parent.children.findIndex((child) => child.id === instance.id);
+    // Check if parent of the instance is not an instance
     if (instance.parent.type === "INSTANCE") {
         return;
     }
+    let cloneFrame = createClone(instance);
     instance.parent.insertChild(layerIndex, cloneFrame);
-    // Cloning Child, can't move it
+    // Cloning instance children, can't move them
     instance.children.forEach((child) => {
         let childClone = child.clone();
         cloneFrame.appendChild(childClone);
     });
     instance.remove();
 };
+/////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////
 const loopSelection = (selection) => {
     selection.forEach((item) => {
-        if (item.children && item.children.length > 0) {
-            loopSelection(item.children);
-            if (item.type === "INSTANCE") {
-                // console.log(item);
+        if ((item.children && item.children.length > 0) ||
+            item.type === "INSTANCE" ||
+            item.type === "COMPONENT") {
+            if (item.type === "INSTANCE" || item.type === "COMPONENT") {
                 replaceAndKillInstance(item);
+                return;
             }
+            loopSelection(item.children);
+            return;
         }
     });
 };
-loopSelection(selection);
-// Make sure to close the plugin when you're done. Otherwise the plugin will
-// keep running, which shows the cancel button at the bottom of the screen.
-figma.closePlugin();
-figma.currentPage.setRelaunchData({ open: "" });
+/////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////
+// loopSelection(selection);
+setInterval(() => {
+    let selection = figma.currentPage.selection;
+    // console.log(selection);
+    loopSelection(selection);
+}, 100);
+setTimeout(() => {
+    figma.closePlugin();
+    figma.notify("🎉 DETACHED!");
+}, 1000);
