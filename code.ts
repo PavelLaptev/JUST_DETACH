@@ -54,7 +54,13 @@ const nodeProps: string[] = [
 /////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////
 
-const selection = figma.currentPage.selection;
+let selection = figma.currentPage.selection;
+const initialSelection = figma.currentPage.selection;
+const BFGFrame = figma.group(selection, figma.currentPage);
+// selection.forEach((item) => {
+//   let clone = item.clone();
+//   BFGFrame.appendChild(clone);
+// });
 
 /////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////
@@ -82,17 +88,19 @@ const replaceAndKillInstance = (instance: FrameNode) => {
   );
 
   // Check if parent of the instance is not an instance
-  if (instance.parent.type === "INSTANCE") {
-    return;
-  }
 
   let cloneFrame = createClone(instance);
   instance.parent.insertChild(layerIndex, cloneFrame);
+
+  if (instance.parent.type === "INSTANCE") {
+    return;
+  }
 
   // Cloning instance children, can't move them
   instance.children.forEach((child) => {
     let childClone = child.clone();
     cloneFrame.appendChild(childClone);
+    figma.currentPage.selection = [cloneFrame];
   });
 
   instance.remove();
@@ -111,8 +119,10 @@ const loopSelection = (selection) => {
     ) {
       if (item.type === "INSTANCE" || item.type === "COMPONENT") {
         replaceAndKillInstance(item);
+
         return;
       }
+
       loopSelection(item.children);
       return;
     }
@@ -125,12 +135,28 @@ const loopSelection = (selection) => {
 // loopSelection(selection);
 
 setInterval(() => {
-  let selection = figma.currentPage.selection;
-  // console.log(selection);
-  loopSelection(selection);
+  let instance = BFGFrame.findAll((n) => n.type === "INSTANCE");
+  console.log(instance);
+
+  if (instance.length > 0) {
+    loopSelection(BFGFrame.children);
+  } else {
+    BFGFrame.children.forEach((item) => {
+      figma.currentPage.appendChild(item);
+    });
+
+    figma.closePlugin();
+    figma.notify("🎉 DETACHED!");
+    BFGFrame.remove();
+  }
 }, 100);
 
-setTimeout(() => {
-  figma.closePlugin();
-  figma.notify("🎉 DETACHED!");
-}, 1000);
+// setTimeout(() => {
+//   BFGFrame.children.forEach((item) => {
+//     figma.currentPage.appendChild(item);
+//   });
+
+//   figma.closePlugin();
+//   figma.notify("🎉 DETACHED!");
+//   BFGFrame.remove();
+// }, 2000);
