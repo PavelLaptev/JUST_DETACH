@@ -1,3 +1,6 @@
+////////////////////////////////////////////////////////////
+////////////////////// PROPS TO COPY ///////////////////////
+////////////////////////////////////////////////////////////
 const nodeProps = [
     "name",
     "visible",
@@ -50,18 +53,30 @@ const nodeProps = [
     "guides",
 ];
 /////////////////////////////////////////////////////////////
+/////////////////////// INITIAL VARS ////////////////////////
 /////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////
-let selection = figma.currentPage.selection;
 const initialSelection = figma.currentPage.selection;
-const BFGFrame = figma.group(selection, figma.currentPage);
-// selection.forEach((item) => {
-//   let clone = item.clone();
-//   BFGFrame.appendChild(clone);
-// });
-/////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////
+const initialItem = {
+    order: initialSelection.map((item) => {
+        return item.parent.children.indexOf(item);
+    }),
+    parent: initialSelection.map((item) => {
+        return item.parent;
+    }),
+    pos: {
+        x: initialSelection.map((item) => {
+            return item.x;
+        }),
+        y: initialSelection.map((item) => {
+            return item.y;
+        }),
+    },
+};
+let selection = figma.currentPage.selection;
+const BFGGroup = figma.group(selection, figma.currentPage);
+//////////////////////////////////////////////////////////////
+/////////////////////////// CLONE ////////////////////////////
+//////////////////////////////////////////////////////////////
 const createClone = (source) => {
     let clone = figma.createFrame();
     clone.resize(source.width, source.height);
@@ -71,12 +86,11 @@ const createClone = (source) => {
     });
     return clone;
 };
-/////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////
+////////////////////// CLONE AND KILL ////////////////////////
+//////////////////////////////////////////////////////////////
 const replaceAndKillInstance = (instance) => {
     let layerIndex = instance.parent.children.findIndex((child) => child.id === instance.id);
-    // Check if parent of the instance is not an instance
     let cloneFrame = createClone(instance);
     instance.parent.insertChild(layerIndex, cloneFrame);
     if (instance.parent.type === "INSTANCE") {
@@ -86,13 +100,14 @@ const replaceAndKillInstance = (instance) => {
     instance.children.forEach((child) => {
         let childClone = child.clone();
         cloneFrame.appendChild(childClone);
-        figma.currentPage.selection = [cloneFrame];
+        // Important to select to continue the loop
+        // figma.currentPage.selection = [cloneFrame];
     });
     instance.remove();
 };
-/////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////
+//////////////////////////////////////////////////////////////
+//////////////////////// MAIN LOOP ///////////////////////////
+//////////////////////////////////////////////////////////////
 const loopSelection = (selection) => {
     selection.forEach((item) => {
         if ((item.children && item.children.length > 0) ||
@@ -108,29 +123,20 @@ const loopSelection = (selection) => {
     });
 };
 /////////////////////////////////////////////////////////////
+//////// CONTINUE WHILE INSTANCES OR MASTERS EXIST //////////
 /////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////
-// loopSelection(selection);
 setInterval(() => {
-    let instance = BFGFrame.findAll((n) => n.type === "INSTANCE");
-    console.log(instance);
-    if (instance.length > 0) {
-        loopSelection(BFGFrame.children);
+    // Check if there any instances or masters to finish the loop
+    let leftoverInstances = BFGGroup.findAll((n) => n.type === "INSTANCE");
+    let leftoverMasters = BFGGroup.findAll((n) => n.type === "COMPONENT");
+    if (leftoverInstances.length > 0 || leftoverMasters.length > 0) {
+        loopSelection(BFGGroup.children);
     }
     else {
-        BFGFrame.children.forEach((item) => {
-            figma.currentPage.appendChild(item);
+        BFGGroup.children.forEach((item, i) => {
+            initialItem.parent[i].appendChild(item);
         });
         figma.closePlugin();
         figma.notify("🎉 DETACHED!");
-        BFGFrame.remove();
     }
 }, 100);
-// setTimeout(() => {
-//   BFGFrame.children.forEach((item) => {
-//     figma.currentPage.appendChild(item);
-//   });
-//   figma.closePlugin();
-//   figma.notify("🎉 DETACHED!");
-//   BFGFrame.remove();
-// }, 2000);
