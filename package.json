@@ -1,14 +1,14 @@
 {
-  "name": "JUST-DETACH",
-  "version": "1.0.0",
+  "name": "just-detach",
+  "version": "3.0.0",
   "description": "Your Figma plugin",
   "main": "code.js",
   "scripts": {
-    "build": "tsc -p tsconfig.json"
+    "build:watch": "tsc -w -p tsconfig.json"
   },
   "author": "",
   "license": "",
   "devDependencies": {
-    "@figma/plugin-typings": "^1.19.2"
+    "@figma/plugin-typings": "*"
   }
 }
